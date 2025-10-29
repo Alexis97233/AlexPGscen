@@ -5,6 +5,11 @@
 This package generates power grid scenarios using GEMINI trained on historical grid asset actual and forecasted values.
 Please see the Jupyter notebooks available in the `examples/` directory for an overview of how PGscen works.
 
+## License Notice
+
+This software is made available for academic and research purposes only under a license from Princeton University. Commercial use is prohibited without a separate license agreement.
+
+For commercial use licensing inquiries, contact: [rmukerji@loudonenergy.com](mailto:rmukerji@loudonenergy.com)
 
 ## Installation ##
 
