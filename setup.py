@@ -1,4 +1,4 @@
-#!/bin/usr/env python
+#!/usr/bin/env python
 import os
 import sys
 import setuptools
@@ -23,6 +23,7 @@ setuptools.setup(
                              '../data/*/*/*.zip',
                              '../data/*/*/*.csv',
                              '../data/Map/*.zip']},
+    include_package_data=True,
 
     entry_points={
         'console_scripts': [
