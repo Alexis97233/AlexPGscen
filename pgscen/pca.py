@@ -310,6 +310,7 @@ class PCAGeminiEngine(GeminiEngine):
                                    unit='m')
                     ).floor('H').hour
         except ValueError:
+            # Fallback to 20 (8 PM) as a reasonable default sunset hour for most US locations.
             joint_model_end = 20
 
         joint_model_start_timestep = [ts for ts in self.scen_timesteps
