@@ -13,6 +13,6 @@ RUN micromamba env create -f /tmp/environment.yml && \
 
 # Copy the project and install it the same way the workflow does
 COPY --chown=root:root . /workspace
-RUN micromamba run -n pgscen pip install .
+RUN pip install .
 
 CMD ["micromamba", "run", "-n", "pgscen", "bash", "test/test_run.sh"]
