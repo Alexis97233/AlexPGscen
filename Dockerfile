@@ -18,15 +18,19 @@ ENV MAMBA_DEFAULT_ENV=pgscen
 # temp dir, then run tests using the environment.
 COPY . /workspace
 
-# Ensure mamba cache and HOME are writable by root (we'll run install & tests as root)
-RUN mkdir -p /tmp/mamba && chown -R root:root /tmp/mamba || true
-ENV HOME=/root
+# Create a writable build workspace in /tmp and make it writable to everyone
+# (avoid chown which is not supported on some macOS-mounted filesystems).
+RUN mkdir -p /tmp/buildworkspace /tmp/mamba && \
+    cp -a /workspace/. /tmp/buildworkspace && \
+    chmod -R a+w /tmp/buildworkspace /tmp/mamba || true
+
+# Use /tmp as HOME and /tmp/mamba for mamba cache to avoid lockfile/dotfile
+# permission issues. Run pip install from the temp buildworkspace as root so
+# wheel building and build/ directories can be created freely.
+ENV HOME=/tmp
 ENV MAMBA_CACHE_DIR=/tmp/mamba
+RUN bash -lc "TMPDIR=/tmp micromamba run -n pgscen python -m pip install /tmp/buildworkspace"
 
-# Install the package from the image workspace as root. This avoids chown
-# operations on host-owned files and ensures wheel building has permissions.
-RUN bash -lc "TMPDIR=/tmp micromamba run -n pgscen pip install /workspace"
-
-# Run the test harness inside the container (as root). Using root avoids
-# cross-user lockfile issues with mamba on macOS/GitHub Actions runners.
-CMD ["bash", "-c", "MAMBA_CACHE_DIR=/tmp/mamba HOME=/root micromamba run -n pgscen bash test/test_run.sh"]
+# Run the same test harness inside the container (as root) using the same
+# cache/home settings to avoid cross-user lockfile issues.
+CMD ["bash", "-c", "MAMBA_CACHE_DIR=/tmp/mamba HOME=/tmp micromamba run -n pgscen bash test/test_run.sh"]
