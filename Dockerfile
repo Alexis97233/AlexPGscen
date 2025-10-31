@@ -14,6 +14,6 @@ ENV MAMBA_DEFAULT_ENV=pgscen
 
 # Copy the project and install it the same way the workflow does
 COPY --chown=root:root . /workspace
-RUN micromamba run -n pgscen pip install .
+RUN micromamba run -n pgscen pip install /workspace
 
 CMD ["micromamba", "run", "-n", "pgscen", "bash", "test/test_run.sh"]
