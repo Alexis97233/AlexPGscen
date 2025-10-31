@@ -294,9 +294,8 @@ class PCAGeminiEngine(GeminiEngine):
                                    unit='m')
                     ).floor('H').hour
         except ValueError:
+            # Fallback to 6 AM as a reasonable default sunrise hour if calculation fails.
             joint_model_start = 6
-
-        try:
             joint_model_end = (
                     pd.to_datetime(min(
                         sun(LocationInfo('east', self.us_state, self.timezone,
