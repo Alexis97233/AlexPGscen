@@ -1,6 +1,7 @@
 # Dockerfile to reproduce the GitHub Actions test job locally
 FROM mambaorg/micromamba:1.5.6-bullseye
 
+ENV MAMBA_CACHE_DIR=/tmp/mamba
 # Activate the created environment for subsequent RUN instructions
 ARG MAMBA_DOCKERFILE_ACTIVATE=1
 
@@ -11,7 +12,6 @@ COPY environment.yml /tmp/environment.yml
 RUN micromamba env create -f /tmp/environment.yml && \
     micromamba clean --all --yes
 ENV MAMBA_DEFAULT_ENV=pgscen
-ENV MAMBA_CACHE_DIR=/tmp/mamba
 
 # Copy the project and install it the same way the workflow does
 COPY --chown=1000:1000 . /workspace
