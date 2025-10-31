@@ -217,6 +217,7 @@ class ScenarioGenerator(ABC):
 
         self.energy_scores = args.energy_scores
         self.variograms = args.variograms
+        self.test = args.test
 
         if hasattr(args, 'use_all_load_hist'):
             self.use_all_load_hist = args.use_all_load_hist
@@ -331,13 +332,13 @@ class ScenarioGenerator(ABC):
             for asset_type, scen_engine in scen_engines.items():
                 asset_lbl = asset_type.capitalize()
 
-                if self.energy_scores:
+                if self.energy_scores and asset_type != 'joint':
                     energy_scores[asset_lbl] = compute_energy_scores(
                         scen_engine.scenarios[asset_type],
                         self.actuals[asset_type], self.forecasts[asset_type]
                         )
 
-                if self.variograms:
+                if self.variograms and asset_type != 'joint':
                     variograms[asset_lbl] = compute_variograms(
                         scen_engine.scenarios[asset_type],
                         self.actuals[asset_type], self.forecasts[asset_type]
@@ -345,14 +346,18 @@ class ScenarioGenerator(ABC):
 
                 if self.write_csv:
                     if asset_type == 'joint':
-                        scen_engine.write_to_csv(
-                            self.output_dir, self.futures, write_forecasts=True)
+                        out_scens['Load'] = scen_engine.scenarios['load'].round(4)
+                        out_scens['Solar'] = scen_engine.scenarios['solar'].round(4)
                     else:
-                        scen_engine.write_to_csv(
-                            self.output_dir, self.futures[asset_type], write_forecasts=True)
+                        out_scens[asset_type.capitalize()] = scen_engine.scenarios[
+                            asset_type].round(4)
                 else:
-                    out_scens[asset_type.capitalize()] = scen_engine.scenarios[
-                        asset_type].round(4)
+                    if asset_type == 'joint':
+                        out_scens['Load'] = scen_engine.scenarios['load'].round(4)
+                        out_scens['Solar'] = scen_engine.scenarios['solar'].round(4)
+                    else:
+                        out_scens[asset_type.capitalize()] = scen_engine.scenarios[
+                            asset_type].round(4)
 
             if not self.write_csv:
                 with bz2.BZ2File(out_path, 'w') as f:
@@ -433,7 +438,7 @@ class T7kScenarioGenerator(ScenarioGenerator):
             self, scen_timesteps: pd.DatetimeIndex) -> GeminiEngine:
 
         if self.actuals['load'] is None:
-            self.actuals['load'], self.forecasts['load'] = load_load_data()
+            self.actuals['load'], self.forecasts['load'] = load_load_data(self.test)
 
         # split input datasets into training and testing subsets
         # for RTS we always do in-sample since we only have a year of data
@@ -459,7 +464,7 @@ class T7kScenarioGenerator(ScenarioGenerator):
 
         if self.actuals['wind'] is None:
             (self.actuals['wind'], self.forecasts['wind'],
-                self.metadata['wind']) = load_wind_data()
+                self.metadata['wind']) = load_wind_data(self.test)
 
         (wind_site_actual_hists,
             self.futures['wind']) = split_actuals_hist_future(
@@ -484,7 +489,7 @@ class T7kScenarioGenerator(ScenarioGenerator):
 
         if self.actuals['solar'] is None:
             (self.actuals['solar'], self.forecasts['solar'],
-                self.metadata['solar']) = load_solar_data()
+                self.metadata['solar']) = load_solar_data(self.test)
 
         (solar_site_actual_hists,
             self.futures['solar']) = split_actuals_hist_future(
@@ -513,11 +518,11 @@ class T7kScenarioGenerator(ScenarioGenerator):
             self, scen_timesteps: pd.DatetimeIndex) -> PCAGeminiEngine:
 
         if self.actuals['load'] is None:
-            self.actuals['load'], self.forecasts['load'] = load_load_data()
+            self.actuals['load'], self.forecasts['load'] = load_load_data(self.test)
 
         if self.actuals['solar'] is None:
             (self.actuals['solar'], self.forecasts['solar'],
-                self.metadata['solar']) = load_solar_data()
+                self.metadata['solar']) = load_solar_data(self.test)
 
         # split input datasets into training and testing subsets
         # for RTS we always do in-sample since we only have a year of data

@@ -279,33 +279,39 @@ class PCAGeminiEngine(GeminiEngine):
         geosort_assets = self.meta_df.sort_values('longitude', ascending=True)
         wst_asset, est_asset = geosort_assets.iloc[0], geosort_assets.iloc[-1]
 
-        joint_model_start = (
-                pd.to_datetime(max(
-                    sun(LocationInfo('west', self.us_state, 'USA',
-                                     wst_asset.latitude,
-                                     wst_asset.longitude).observer,
-                        date=dt)['sunrise']
-                    for dt in solar_md.hist_dev_df.index
-                    ))
+        try:
+            joint_model_start = (
+                    pd.to_datetime(max(
+                        sun(LocationInfo('west', self.us_state, self.timezone,
+                                         wst_asset.latitude,
+                                         wst_asset.longitude).observer,
+                            date=dt)['sunrise']
+                        for dt in solar_md.hist_dev_df.index
+                        ))
 
-                + pd.Timedelta(60
-                               + self.trans_delay[wst_asset.name]['sunrise'],
-                               unit='m')
-                ).floor('H').hour
+                    + pd.Timedelta(60
+                                   + self.trans_delay[wst_asset.name]['sunrise'],
+                                   unit='m')
+                    ).floor('H').hour
+        except ValueError:
+            joint_model_start = 6
 
-        joint_model_end = (
-                pd.to_datetime(min(
-                    sun(LocationInfo('east', self.us_state, 'USA',
-                                     est_asset.latitude,
-                                     est_asset.longitude).observer,
-                        date=dt)['sunset']
-                    for dt in solar_md.hist_dev_df.index
-                    ))
+        try:
+            joint_model_end = (
+                    pd.to_datetime(min(
+                        sun(LocationInfo('east', self.us_state, self.timezone,
+                                         est_asset.latitude,
+                                         est_asset.longitude).observer,
+                            date=dt)['sunset']
+                        for dt in solar_md.hist_dev_df.index
+                        ))
 
-                - pd.Timedelta(60
-                               + self.trans_delay[est_asset.name]['sunset'],
-                               unit='m')
-                ).floor('H').hour
+                    - pd.Timedelta(60
+                                   + self.trans_delay[est_asset.name]['sunset'],
+                                   unit='m')
+                    ).floor('H').hour
+        except ValueError:
+            joint_model_end = 20
 
         joint_model_start_timestep = [ts for ts in self.scen_timesteps
                                       if ts.hour == joint_model_start][0]
@@ -353,7 +359,7 @@ class PCAGeminiEngine(GeminiEngine):
         load_solar_zone_gauss_df = joint_load_df.merge(
             solar_zone_gauss_df, how='inner',
             left_index=True, right_index=True
-            ).sum(level=0, axis=1)
+            ).groupby(level=0, axis=1).sum()
 
         # standardize zone-level solar
         (load_solar_zone_gauss_mean, load_solar_zone_gauss_std,
@@ -393,8 +399,7 @@ class PCAGeminiEngine(GeminiEngine):
 
         # generate joint scenarios
         sqrtcov = sqrtm(self.joint_md['asset_cov'].values).real
-        arr = sqrtcov @ np.random.randn(len(self.joint_md['asset_list']),
-                                        nscen)
+        arr = sqrtcov @ np.random.randn(len(self.joint_md['asset_list']), nscen)
 
         joint_scen_gauss_df = pd.DataFrame(data=arr.T,
                                            columns=self.joint_md['asset_list'])
