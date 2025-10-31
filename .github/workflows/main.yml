@@ -19,5 +19,5 @@ jobs:
         run: docker build -t pgscen .
 
       - name: Run tests
-        run: docker run --rm pgscen micromamba run -n pgscen bash -c "bash test/test_run.sh"
+        run: docker run --rm pgscen micromamba run -n pgscen bash test/test_run.sh
 
