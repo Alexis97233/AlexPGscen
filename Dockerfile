@@ -18,23 +18,15 @@ ENV MAMBA_DEFAULT_ENV=pgscen
 # temp dir, then run tests using the environment.
 COPY . /workspace
 
-# Prepare writable locations: build workspace, mamba cache and a home dir for
-# the mamba user. Copy sources into the temp build dir to avoid touching
-# host-owned files. Chown the temp dirs to UID 1000 so the mamba user can use
-# them without hitting permission errors or lockfile issues.
-RUN mkdir -p /tmp/buildworkspace /tmp/mamba /home/mambauser && \
-    cp -a /workspace/. /tmp/buildworkspace && \
-    mkdir -p /home/mambauser/.cache/mamba && \
-    chown -R 1000:1000 /tmp/buildworkspace /tmp/mamba /home/mambauser || true
-
-# Expose HOME and MAMBA cache to ensure micromamba uses writable locations.
-ENV HOME=/home/mambauser
+# Ensure mamba cache and HOME are writable by root (we'll run install & tests as root)
+RUN mkdir -p /tmp/mamba && chown -R root:root /tmp/mamba || true
+ENV HOME=/root
 ENV MAMBA_CACHE_DIR=/tmp/mamba
 
-# Run pip install from the writable buildworkspace as UID 1000 so wheel
-# building can create build/ directories without permission errors.
-USER 1000
-RUN bash -lc "MAMBA_CACHE_DIR=/tmp/mamba HOME=/home/mambauser TMPDIR=/tmp micromamba run -n pgscen pip install /tmp/buildworkspace"
+# Install the package from the image workspace as root. This avoids chown
+# operations on host-owned files and ensures wheel building has permissions.
+RUN bash -lc "TMPDIR=/tmp micromamba run -n pgscen pip install /workspace"
 
-# Run the test harness as the mamba user, ensuring mamba uses /tmp cache
-CMD ["bash", "-c", "MAMBA_CACHE_DIR=/tmp/mamba HOME=/home/mambauser micromamba run -n pgscen bash test/test_run.sh"]
+# Run the test harness inside the container (as root). Using root avoids
+# cross-user lockfile issues with mamba on macOS/GitHub Actions runners.
+CMD ["bash", "-c", "MAMBA_CACHE_DIR=/tmp/mamba HOME=/root micromamba run -n pgscen bash test/test_run.sh"]
