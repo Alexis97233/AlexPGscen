@@ -15,16 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
-          environment-file: environment.yml
-          auto-activate-base: false
+      - name: Build Docker image
+        run: docker build -t pgscen .
 
-      - name: test-run
-        shell: bash -l {0}
-        run: |
-          pip install .
-          sh test/test_run.sh
-          echo tests finished successfully!
+      - name: Run tests
+        run: docker run --rm pgscen bash -c "bash test/test_run.sh"
 
