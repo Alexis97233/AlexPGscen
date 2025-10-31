@@ -10,6 +10,7 @@ WORKDIR /workspace
 COPY environment.yml /tmp/environment.yml
 RUN micromamba env create -f /tmp/environment.yml && \
     micromamba clean --all --yes
+ENV MAMBA_DEFAULT_ENV=pgscen
 
 # Copy the project and install it the same way the workflow does
 COPY --chown=root:root . /workspace
