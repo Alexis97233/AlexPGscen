@@ -1,23 +1,26 @@
-name: CI
+name: CI (Docker-based)
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-
   workflow_dispatch:
 
 jobs:
-  test:
-    runs-on: ubuntu-22.04
+  docker-tests:
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t pgscen .
+        run: |
+          docker build -t pgscen-test -f Dockerfile .
 
-      - name: Run tests
-        run: docker run --rm pgscen micromamba run -n pgscen bash test/test_run.sh
-
+      - name: Run tests inside container
+        run: |
+          # Run the tests using the same writable buildworkspace trick used locally.
+          docker run --rm -v ${{ github.workspace }}:/tmp/buildworkspace -e PYTHONPATH=/tmp/buildworkspace pgscen-test \
+            bash -c "MAMBA_CACHE_DIR=/tmp/mamba HOME=/tmp micromamba run -n pgscen bash /tmp/buildworkspace/test/test_run.sh"
