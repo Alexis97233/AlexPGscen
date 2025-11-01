@@ -280,6 +280,7 @@ class PCAGeminiEngine(GeminiEngine):
         wst_asset, est_asset = geosort_assets.iloc[0], geosort_assets.iloc[-1]
 
         try:
+            # compute joint model start (latest sunrise across historical days)
             joint_model_start = (
                     pd.to_datetime(max(
                         sun(LocationInfo('west', self.us_state, self.timezone,
@@ -288,14 +289,11 @@ class PCAGeminiEngine(GeminiEngine):
                             date=dt)['sunrise']
                         for dt in solar_md.hist_dev_df.index
                         ))
-
-                    + pd.Timedelta(60
-                                   + self.trans_delay[wst_asset.name]['sunrise'],
+                    + pd.Timedelta(60 + self.trans_delay[wst_asset.name]['sunrise'],
                                    unit='m')
                     ).floor('H').hour
-        except ValueError:
-            # Fallback to 6 AM as a reasonable default sunrise hour if calculation fails.
-            joint_model_start = 6
+
+            # compute joint model end (earliest sunset across historical days)
             joint_model_end = (
                     pd.to_datetime(min(
                         sun(LocationInfo('east', self.us_state, self.timezone,
@@ -304,19 +302,31 @@ class PCAGeminiEngine(GeminiEngine):
                             date=dt)['sunset']
                         for dt in solar_md.hist_dev_df.index
                         ))
-
-                    - pd.Timedelta(60
-                                   + self.trans_delay[est_asset.name]['sunset'],
+                    - pd.Timedelta(60 + self.trans_delay[est_asset.name]['sunset'],
                                    unit='m')
                     ).floor('H').hour
-        except ValueError:
-            # Fallback to 20 (8 PM) as a reasonable default sunset hour for most US locations.
+
+        except Exception:
+            # Fallback reasonable defaults if computation fails
+            joint_model_start = 6
             joint_model_end = 20
 
-        joint_model_start_timestep = [ts for ts in self.scen_timesteps
-                                      if ts.hour == joint_model_start][0]
-        joint_model_end_timestep = [ts for ts in self.scen_timesteps
-                                    if ts.hour == joint_model_end][0]
+        # find the start and end timesteps matching the computed hours
+        joint_model_start_timestep = None
+        for ts in self.scen_timesteps:
+            if ts.hour == joint_model_start:
+                joint_model_start_timestep = ts
+                break
+        if joint_model_start_timestep is None:
+            raise RuntimeError(f"Could not find scen timestep with hour {joint_model_start}")
+
+        joint_model_end_timestep = None
+        for ts in self.scen_timesteps:
+            if ts.hour == joint_model_end:
+                joint_model_end_timestep = ts
+                break
+        if joint_model_end_timestep is None:
+            raise RuntimeError(f"Could not find scen timestep with hour {joint_model_end}")
 
         joint_model_horizon_start = self.scen_timesteps.index(
             joint_model_start_timestep)
