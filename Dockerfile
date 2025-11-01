@@ -31,6 +31,15 @@ ENV HOME=/tmp
 ENV MAMBA_CACHE_DIR=/tmp/mamba
 RUN bash -lc "TMPDIR=/tmp micromamba run -n pgscen python -m pip install /tmp/buildworkspace"
 
+# If Rsafd.zip is present in the workspace, unzip and install it into the
+# R environment so rpy2.imports.importr('Rsafd') works at runtime.
+RUN bash -lc "if [ -f /tmp/buildworkspace/Rsafd.zip ]; then \
+        TMPDIR=/tmp MAMBA_CACHE_DIR=/tmp/mamba HOME=/tmp micromamba run -n pgscen python -m zipfile -e /tmp/buildworkspace/Rsafd.zip /tmp && \
+        TMPDIR=/tmp MAMBA_CACHE_DIR=/tmp/mamba HOME=/tmp micromamba run -n pgscen Rscript -e \"install.packages('/tmp/Rsafd', repos=NULL, type='source')\"; \
+    else \
+        echo 'Rsafd.zip not found in build workspace; skipping Rsafd install'; \
+    fi"
+
 # Run the same test harness inside the container (as root) using the same
 # cache/home settings to avoid cross-user lockfile issues.
 CMD ["bash", "-c", "MAMBA_CACHE_DIR=/tmp/mamba HOME=/tmp micromamba run -n pgscen bash test/test_run.sh"]
