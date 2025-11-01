@@ -2,8 +2,11 @@
 
 from pathlib import Path
 import pandas as pd
+import bz2
+import dill as pickle
 
 data_path = Path(Path(__file__).parent.parent.parent, 'data')
+test_path = Path(Path(__file__).parent.parent.parent, 'test', 'resources')
 
 
 def split_actuals_hist_future(actual_df, scenario_timesteps, in_sample=False):
@@ -26,57 +29,72 @@ def split_forecasts_hist_future(forecast_df, scenario_timesteps,
 
 
 ################################ ERCOT ########################################
-def load_load_data():
-    load_zone_actual_df = pd.read_csv(
-        Path(data_path, 'ERCOT', 'Load', 'Actual',
-             'load_actual_1h_zone_2017_2018_utc.csv'),
-        parse_dates=['Time'], index_col='Time'
-        )
+def load_load_data(test=False):
+    if test:
+        with bz2.BZ2File(Path(test_path, 'load.p.gz'), 'rb') as f:
+            data = pickle.load(f)
+        return data[0], data[1]
+    else:
+        load_zone_actual_df = pd.read_csv(
+            Path(data_path, 'ERCOT', 'Load', 'Actual',
+                 'load_actual_1h_zone_2017_2018_utc.csv'),
+            parse_dates=['Time'], index_col='Time'
+            )
 
-    load_zone_forecast_df = pd.read_csv(
-        Path(data_path, 'ERCOT', 'Load', 'Day-ahead',
-             'load_day_ahead_forecast_zone_2017_2018_utc.csv'),
-        parse_dates=['Issue_time', 'Forecast_time']
-        )
+        load_zone_forecast_df = pd.read_csv(
+            Path(data_path, 'ERCOT', 'Load', 'Day-ahead',
+                 'load_day_ahead_forecast_zone_2017_2018_utc.csv'),
+            parse_dates=['Issue_time', 'Forecast_time']
+            )
 
-    return load_zone_actual_df, load_zone_forecast_df
-
-
-def load_wind_data():
-    wind_site_actual_df = pd.read_csv(
-        Path(data_path, 'ERCOT', 'Wind', 'Actual',
-             'wind_actual_1h_site_2017_2018_utc.csv'),
-        parse_dates=['Time'], index_col='Time'
-        )
-
-    wind_site_forecast_df = pd.read_csv(
-        Path(data_path, 'ERCOT', 'Wind', 'Day-ahead',
-             'wind_day_ahead_forecast_site_2018_utc.csv'),
-        parse_dates=['Issue_time', 'Forecast_time']
-        )
-
-    wind_meta_df = pd.read_excel(Path(data_path, 'ERCOT', 'MetaData', 'wind_meta.xlsx'))
-
-    return wind_site_actual_df, wind_site_forecast_df, wind_meta_df
+        return load_zone_actual_df, load_zone_forecast_df
 
 
-def load_solar_data():
-    solar_site_actual_df = pd.read_csv(
-        Path(data_path, 'ERCOT', 'Solar', 'Actual',
-             'solar_actual_1h_site_2017_2018_utc.csv'),
-        parse_dates=['Time'], index_col='Time'
-        )
+def load_wind_data(test=False):
+    if test:
+        with bz2.BZ2File(Path(test_path, 'wind.p.gz'), 'rb') as f:
+            data = pickle.load(f)
+        return data[0], data[1], data[2]
+    else:
+        wind_site_actual_df = pd.read_csv(
+            Path(data_path, 'ERCOT', 'Wind', 'Actual',
+                 'wind_actual_1h_site_2017_2018_utc.csv'),
+            parse_dates=['Time'], index_col='Time'
+            )
 
-    solar_site_forecast_df = pd.read_csv(
-        Path(data_path, 'ERCOT', 'Solar', 'Day-ahead',
-             'solar_day_ahead_forecast_site_2017_2018_utc.csv'),
-        parse_dates=['Issue_time', 'Forecast_time']
-        )
+        wind_site_forecast_df = pd.read_csv(
+            Path(data_path, 'ERCOT', 'Wind', 'Day-ahead',
+                 'wind_day_ahead_forecast_site_2018_utc.csv'),
+            parse_dates=['Issue_time', 'Forecast_time']
+            )
 
-    solar_meta_df = pd.read_excel(
-        Path(data_path, 'ERCOT', 'MetaData', 'solar_meta.xlsx'))
+        wind_meta_df = pd.read_excel(Path(data_path, 'ERCOT', 'MetaData', 'wind_meta.xlsx'))
 
-    return solar_site_actual_df, solar_site_forecast_df, solar_meta_df
+        return wind_site_actual_df, wind_site_forecast_df, wind_meta_df
+
+
+def load_solar_data(test=False):
+    if test:
+        with bz2.BZ2File(Path(test_path, 'solar.p.gz'), 'rb') as f:
+            data = pickle.load(f)
+        return data[0], data[1], data[2]
+    else:
+        solar_site_actual_df = pd.read_csv(
+            Path(data_path, 'ERCOT', 'Solar', 'Actual',
+                 'solar_actual_1h_site_2017_2018_utc.csv'),
+            parse_dates=['Time'], index_col='Time'
+            )
+
+        solar_site_forecast_df = pd.read_csv(
+            Path(data_path, 'ERCOT', 'Solar', 'Day-ahead',
+                 'solar_day_ahead_forecast_site_2017_2018_utc.csv'),
+            parse_dates=['Issue_time', 'Forecast_time']
+            )
+
+        solar_meta_df = pd.read_excel(
+            Path(data_path, 'ERCOT', 'MetaData', 'solar_meta.xlsx'))
+
+        return solar_site_actual_df, solar_site_forecast_df, solar_meta_df
 
 ################################ NYISO ##########################################
 def load_ny_load_data():
