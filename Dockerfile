@@ -1,5 +1,5 @@
 # Dockerfile to reproduce the GitHub Actions test job locally
-FROM mambaorg/micromamba:1.5.6-bullseye
+FROM mambaorg/micromamba:1.5.10-bullseye
 
 ENV MAMBA_CACHE_DIR=/tmp/mamba
 # Activate the created environment for subsequent RUN instructions
